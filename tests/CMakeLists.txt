@@ -59,6 +59,36 @@ target_link_libraries(test_vehicle
 )
 gtest_discover_tests(test_vehicle)
 
+# Test for Battery plugin
+add_executable(test_battery test_battery.cpp)
+target_link_libraries(test_battery
+    PRIVATE
+        reign_core
+        reign_plugins
+        GTest::gtest_main
+)
+gtest_discover_tests(test_battery)
+
+# Test for DroneElectricPropulsion plugin
+add_executable(test_drone_electric_propulsion test_drone_electric_propulsion.cpp)
+target_link_libraries(test_drone_electric_propulsion
+    PRIVATE
+        reign_core
+        reign_plugins
+        GTest::gtest_main
+)
+gtest_discover_tests(test_drone_electric_propulsion)
+
+# Test for SpacecraftElectricPropulsion plugin
+add_executable(test_spacecraft_electric_propulsion test_spacecraft_electric_propulsion.cpp)
+target_link_libraries(test_spacecraft_electric_propulsion
+    PRIVATE
+        reign_core
+        reign_plugins
+        GTest::gtest_main
+)
+gtest_discover_tests(test_spacecraft_electric_propulsion)
+
 # Integration tests
 add_executable(test_integration test_integration.cpp)
 target_link_libraries(test_integration

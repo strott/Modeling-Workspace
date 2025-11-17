@@ -32,6 +32,9 @@ target_sources(reign_plugins
             plugins/MassProperties.cppm
             plugins/ReactionWheel.cppm
             plugins/RocketPropulsion.cppm
+            plugins/Battery.cppm
+            plugins/DroneElectricPropulsion.cppm
+            plugins/SpacecraftElectricPropulsion.cppm
 )
 
 target_link_libraries(reign_plugins
@@ -43,6 +46,24 @@ target_link_libraries(reign_plugins
 add_executable(reign_sim main.cpp)
 
 target_link_libraries(reign_sim
+    PRIVATE
+        reign_core
+        reign_plugins
+)
+
+# Drone example
+add_executable(example_drone example_drone.cpp)
+
+target_link_libraries(example_drone
+    PRIVATE
+        reign_core
+        reign_plugins
+)
+
+# Spacecraft electric propulsion example
+add_executable(example_spacecraft_electric example_spacecraft_electric.cpp)
+
+target_link_libraries(example_spacecraft_electric
     PRIVATE
         reign_core
         reign_plugins

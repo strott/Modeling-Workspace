@@ -32,9 +32,12 @@ RE::Compute
 └── DynamicsKernel       - GPU dynamics computation base
 
 RE::Plugins
-├── MassProperties       - Mass, inertia, center of gravity
-├── ReactionWheel        - Attitude control wheel (depends on MassProperties)
-└── RocketPropulsion     - Thrust and fuel consumption (depends on MassProperties)
+├── MassProperties                  - Mass, inertia, center of gravity
+├── Battery                         - Power source for electric systems
+├── ReactionWheel                   - Attitude control wheel (depends on MassProperties)
+├── RocketPropulsion                - Chemical rocket thrust (depends on MassProperties)
+├── DroneElectricPropulsion         - Electric motors/propellers for drones (depends on MassProperties, Battery)
+└── SpacecraftElectricPropulsion    - Ion/Hall thrusters for spacecraft (depends on MassProperties, Battery)
 ```
 
 ### Plugin System
@@ -210,6 +213,99 @@ int main() {
 }
 ```
 
+### Electric Propulsion Examples
+
+#### Drone with Electric Motors
+
+```cpp
+// Create a quadcopter drone
+Vehicle drone(VehicleType::Drone, "Quadcopter");
+
+// Add battery
+auto battery = std::make_shared<Battery>();
+nlohmann::json batteryConfig = {
+    {"capacity", 111.0},        // 5000mAh * 22.2V = 111 Wh
+    {"voltage", 22.2},          // 6S LiPo
+    {"maxDischargeRate", 100.0} // 100A continuous
+};
+drone.addPlugin(battery, batteryConfig);
+
+// Add electric propulsion (4 motors)
+auto propulsion = std::make_shared<DroneElectricPropulsion>();
+nlohmann::json propulsionConfig = {
+    {"numMotors", 4},
+    {"motorConfig", {
+        {"maxRpm", 8000.0},
+        {"maxThrust", 12.0},         // 12N per motor
+        {"motorKv", 920},
+        {"propellerDiameter", 0.254} // 10 inch props
+    }},
+    {"motorPositions", {
+        {0.15, 0.15, 0.0},     // Front right
+        {-0.15, 0.15, 0.0},    // Front left
+        {-0.15, -0.15, 0.0},   // Rear left
+        {0.15, -0.15, 0.0}     // Rear right
+    }}
+};
+drone.addPlugin(propulsion, propulsionConfig);
+
+// Control individual motors
+propulsion->setMotorThrottle(0, 0.7);  // Front right at 70%
+propulsion->setAllMotorThrottle(0.55); // Or all motors at once
+```
+
+#### Spacecraft with Ion/Hall Thruster
+
+```cpp
+// Create a satellite with electric propulsion
+Vehicle spacecraft(VehicleType::Spacecraft, "SmallSat-EP");
+
+// Add power source
+auto battery = std::make_shared<Battery>();
+nlohmann::json batteryConfig = {
+    {"capacity", 50000.0},  // 50 kWh
+    {"voltage", 100.0},     // 100V bus
+    {"maxDischargeRate", 100.0}
+};
+spacecraft.addPlugin(battery, batteryConfig);
+
+// Add Hall effect thruster
+auto propulsion = std::make_shared<SpacecraftElectricPropulsion>();
+nlohmann::json propulsionConfig = {
+    {"thrusterType", "HallEffect"},
+    {"maxPower", 5000.0},        // 5 kW
+    {"specificImpulse", 2000.0}, // 2000s (vs ~300s chemical)
+    {"maxThrust", 0.15},         // 150 mN (low but efficient)
+    {"efficiency", 0.65},
+    {"propellantMass", 20.0}     // 20 kg Xenon
+};
+spacecraft.addPlugin(propulsion, propulsionConfig);
+
+// Control thruster
+propulsion->setPowerLevel(1.0);  // Full power
+double thrust = propulsion->getCurrentThrust(); // In Newtons
+double isp = propulsion->getSpecificImpulse(); // Very high!
+```
+
+**Key Differences:**
+- **Drone Electric**: Multiple motors, propeller dynamics, battery-powered, moderate thrust
+- **Spacecraft Electric**: Ion/Hall thrusters, very high ISP (2000-3000s), very low thrust (mN), power-hungry
+
+## Example Programs
+
+The repository includes several example simulations:
+
+```bash
+# Chemical rocket spacecraft (original example)
+./build/bin/reign_sim
+
+# Quadcopter drone with electric motors
+./build/bin/example_drone
+
+# Spacecraft with electric propulsion (ion thruster)
+./build/bin/example_spacecraft_electric
+```
+
 ## Creating Custom Plugins
 
 ### 1. Define Your Plugin
@@ -301,8 +397,11 @@ ctest --output-on-failure
 - `test_simulation_context` - SimulationContext property storage
 - `test_plugin_manager` - Plugin lifecycle and dependency injection
 - `test_mass_properties` - MassProperties plugin
+- `test_battery` - Battery/power source plugin
 - `test_reaction_wheel` - ReactionWheel plugin
-- `test_rocket_propulsion` - RocketPropulsion plugin
+- `test_rocket_propulsion` - RocketPropulsion plugin (chemical)
+- `test_drone_electric_propulsion` - DroneElectricPropulsion plugin
+- `test_spacecraft_electric_propulsion` - SpacecraftElectricPropulsion plugin
 - `test_vehicle` - Vehicle configuration and management
 - `test_integration` - End-to-end integration tests
 
@@ -373,9 +472,14 @@ Modeling-Workspace/
 │   │   └── DynamicsKernel.cppm
 │   ├── plugins/             # Plugin implementations
 │   │   ├── MassProperties.cppm
+│   │   ├── Battery.cppm
 │   │   ├── ReactionWheel.cppm
-│   │   └── RocketPropulsion.cppm
-│   └── main.cpp             # Example application
+│   │   ├── RocketPropulsion.cppm
+│   │   ├── DroneElectricPropulsion.cppm
+│   │   └── SpacecraftElectricPropulsion.cppm
+│   ├── main.cpp             # Example spacecraft with chemical propulsion
+│   ├── example_drone.cpp    # Example drone with electric motors
+│   └── example_spacecraft_electric.cpp  # Example spacecraft with ion thruster
 └── tests/                   # Test suite
     ├── CMakeLists.txt
     ├── test_simulation_context.cpp
